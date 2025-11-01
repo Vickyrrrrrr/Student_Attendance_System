@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { attendanceAPI, studentsAPI, classesAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 // Separate form component to prevent re-renders
 const AttendanceForm = ({ 
@@ -95,6 +96,7 @@ const AttendanceForm = ({
 );
 
 const Attendance = () => {
+  const { isTeacher } = useAuth();
   const [attendance, setAttendance] = useState([]);
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -176,6 +178,23 @@ const Attendance = () => {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const response = await attendanceAPI.exportCSV();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Attendance exported successfully');
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to export attendance';
+      toast.error(message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -188,12 +207,22 @@ const Attendance = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Attendance Management</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          {showForm ? 'Hide Form' : 'Mark Attendance'}
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleExportCSV}
+            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            📥 Export CSV
+          </button>
+          {isTeacher && (
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {showForm ? 'Hide Form' : 'Mark Attendance'}
+            </button>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -262,12 +291,14 @@ const Attendance = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleDelete(record._id)}
-                        className="text-red-600 hover:text-red-900 px-2 py-1 rounded hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
+                      {isTeacher && (
+                        <button
+                          onClick={() => handleDelete(record._id)}
+                          className="text-red-600 hover:text-red-900 px-2 py-1 rounded hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

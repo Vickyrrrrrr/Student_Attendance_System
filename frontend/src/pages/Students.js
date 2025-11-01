@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { studentsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 // Separate form component to prevent re-renders
 const StudentForm = ({ 
@@ -93,10 +94,15 @@ const StudentForm = ({
 );
 
 const Students = () => {
+  const { isTeacher } = useAuth();
+  const fileInputRef = useRef(null);
   const [students, setStudents] = useState([]);
+  const [filteredStudents, setFilteredStudents] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     rollNumber: '',
@@ -107,6 +113,21 @@ const Students = () => {
   useEffect(() => {
     fetchStudents();
   }, []);
+
+  useEffect(() => {
+    // Filter students based on search term
+    if (searchTerm.trim() === '') {
+      setFilteredStudents(students);
+    } else {
+      const filtered = students.filter(student =>
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredStudents(filtered);
+    }
+  }, [searchTerm, students]);
 
   const fetchStudents = async () => {
     try {
@@ -184,6 +205,56 @@ const Students = () => {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const response = await studentsAPI.exportCSV();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `students-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Students exported successfully');
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to export students';
+      toast.error(message);
+    }
+  };
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please upload a CSV file');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await studentsAPI.importCSV(formData);
+      toast.success(response.data.message);
+      
+      if (response.data.data?.errors && response.data.data.errors.length > 0) {
+        toast.warning(`${response.data.data.errors.length} rows had errors`);
+      }
+
+      fetchStudents();
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to import students';
+      toast.error(message);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -197,12 +268,38 @@ const Students = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Students Management</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          {showForm ? 'Hide Form' : 'Add Student'}
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleExportCSV}
+            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            📥 Export CSV
+          </button>
+          {isTeacher && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleImportCSV}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {importing ? '⏳ Importing...' : '📤 Import CSV'}
+              </button>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {showForm ? 'Hide Form' : 'Add Student'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Add/Edit Form */}
@@ -216,17 +313,45 @@ const Students = () => {
         />
       )}
 
+      {/* Search Bar */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center space-x-2">
+          <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by name, roll number, class, or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 px-3 py-2 border-0 focus:outline-none focus:ring-0 text-sm"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Students Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Students List ({students.length})
+            Students List ({filteredStudents.length}{searchTerm && ` of ${students.length}`})
           </h2>
         </div>
         
-        {students.length === 0 ? (
+        {filteredStudents.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">No students found. Add your first student!</p>
+            <p className="text-gray-500">
+              {searchTerm ? 'No students found matching your search.' : 'No students found. Add your first student!'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -251,7 +376,7 @@ const Students = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {students.map((student) => (
+                {filteredStudents.map((student) => (
                   <tr key={student._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -280,18 +405,22 @@ const Students = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEdit(student)}
-                          className="text-primary-600 hover:text-primary-900 px-2 py-1 rounded hover:bg-primary-50"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(student._id)}
-                          className="text-red-600 hover:text-red-900 px-2 py-1 rounded hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
+                        {isTeacher && (
+                          <>
+                            <button
+                              onClick={() => handleEdit(student)}
+                              className="text-primary-600 hover:text-primary-900 px-2 py-1 rounded hover:bg-primary-50"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(student._id)}
+                              className="text-red-600 hover:text-red-900 px-2 py-1 rounded hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

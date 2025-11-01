@@ -12,6 +12,11 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Add token to headers if it exists
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -28,6 +33,12 @@ api.interceptors.response.use(
     if (error.response) {
       // Server responded with error status
       console.error('API Error:', error.response.data);
+      
+      // Handle unauthorized errors (token expired, invalid, etc.)
+      if (error.response.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     } else if (error.request) {
       // Request made but no response
       console.error('Network Error:', error.request);
@@ -39,6 +50,15 @@ api.interceptors.response.use(
   }
 );
 
+// Auth API
+export const authAPI = {
+  login: (data) => api.post('/auth/login', data),
+  register: (data) => api.post('/auth/register', data),
+  getMe: () => api.get('/auth/me'),
+  updatePassword: (data) => api.put('/auth/update-password', data),
+};
+
+
 // Students API
 export const studentsAPI = {
   getAll: () => api.get('/students'),
@@ -47,6 +67,12 @@ export const studentsAPI = {
   update: (id, data) => api.put(`/students/${id}`, data),
   delete: (id) => api.delete(`/students/${id}`),
   getAttendance: (id) => api.get(`/students/${id}/attendance`),
+  importCSV: (formData) => api.post('/students/import/csv', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  exportCSV: () => api.get('/students/export/csv', {
+    responseType: 'blob'
+  }),
 };
 
 // Classes API
@@ -68,6 +94,10 @@ export const attendanceAPI = {
   delete: (id) => api.delete(`/attendance/${id}`),
   bulkMark: (data) => api.post('/attendance/bulk', data),
   getStats: (params) => api.get('/attendance/stats/overview', { params }),
+  exportCSV: (params) => api.get('/attendance/export/csv', {
+    params,
+    responseType: 'blob'
+  }),
 };
 
 // Health check

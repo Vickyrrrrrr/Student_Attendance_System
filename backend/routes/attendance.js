@@ -1,8 +1,10 @@
 const express = require('express');
+const { Parser } = require('json2csv');
 const { body, validationResult } = require('express-validator');
 const Attendance = require('../models/Attendance');
 const Student = require('../models/Student');
 const Class = require('../models/Class');
+const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -14,8 +16,8 @@ const validateAttendance = [
   body('status').isIn(['Present', 'Absent', 'Late']).withMessage('Status must be Present, Absent, or Late')
 ];
 
-// Get all attendance records
-router.get('/', async (req, res) => {
+// Get all attendance records (all authenticated users)
+router.get('/', authenticate, async (req, res) => {
   try {
     const { studentId, classId, date, status } = req.query;
     let filter = {};
@@ -49,8 +51,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get attendance by ID
-router.get('/:id', async (req, res) => {
+// Get attendance by ID (all authenticated users)
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const attendance = await Attendance.findById(req.params.id)
       .populate('studentId', 'name rollNumber class')
@@ -76,8 +78,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Mark attendance
-router.post('/', validateAttendance, async (req, res) => {
+// Mark attendance (only teachers and admins)
+router.post('/', authenticate, authorize('teacher', 'admin'), validateAttendance, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -152,8 +154,8 @@ router.post('/', validateAttendance, async (req, res) => {
   }
 });
 
-// Update attendance
-router.put('/:id', validateAttendance, async (req, res) => {
+// Update attendance (only teachers and admins)
+router.put('/:id', authenticate, authorize('teacher', 'admin'), validateAttendance, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -230,8 +232,8 @@ router.put('/:id', validateAttendance, async (req, res) => {
   }
 });
 
-// Delete attendance
-router.delete('/:id', async (req, res) => {
+// Delete attendance (only teachers and admins)
+router.delete('/:id', authenticate, authorize('teacher', 'admin'), async (req, res) => {
   try {
     const attendance = await Attendance.findByIdAndDelete(req.params.id);
     
@@ -255,8 +257,8 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Bulk mark attendance for a class
-router.post('/bulk', async (req, res) => {
+// Bulk mark attendance for a class (only teachers and admins)
+router.post('/bulk', authenticate, authorize('teacher', 'admin'), async (req, res) => {
   try {
     const { classId, date, attendanceData } = req.body;
 
@@ -356,8 +358,8 @@ router.post('/bulk', async (req, res) => {
   }
 });
 
-// Get attendance statistics
-router.get('/stats/overview', async (req, res) => {
+// Get attendance statistics (all authenticated users)
+router.get('/stats/overview', authenticate, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     let dateFilter = {};
@@ -392,6 +394,75 @@ router.get('/stats/overview', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching attendance statistics',
+      error: error.message
+    });
+  }
+});
+
+// CSV Export - Download attendance records as CSV
+router.get('/export/csv', authenticate, async (req, res) => {
+  try {
+    const { studentId, classId, startDate, endDate } = req.query;
+    let filter = {};
+
+    if (studentId) filter.studentId = studentId;
+    if (classId) filter.classId = classId;
+    if (startDate && endDate) {
+      filter.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+
+    const attendance = await Attendance.find(filter)
+      .populate('studentId', 'name rollNumber class email')
+      .populate('classId', 'name subject teacher')
+      .sort({ date: -1 })
+      .lean();
+
+    if (attendance.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No attendance records found to export'
+      });
+    }
+
+    // Format data for CSV
+    const csvData = attendance.map(record => ({
+      studentName: record.studentId?.name || 'N/A',
+      rollNumber: record.studentId?.rollNumber || 'N/A',
+      studentClass: record.studentId?.class || 'N/A',
+      studentEmail: record.studentId?.email || 'N/A',
+      className: record.classId?.name || 'N/A',
+      subject: record.classId?.subject || 'N/A',
+      teacher: record.classId?.teacher || 'N/A',
+      date: new Date(record.date).toLocaleDateString(),
+      status: record.status
+    }));
+
+    // Convert to CSV
+    const fields = [
+      'studentName',
+      'rollNumber',
+      'studentClass',
+      'studentEmail',
+      'className',
+      'subject',
+      'teacher',
+      'date',
+      'status'
+    ];
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(csvData);
+
+    // Send CSV file
+    res.header('Content-Type', 'text/csv');
+    res.header('Content-Disposition', 'attachment; filename=attendance.csv');
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting attendance',
       error: error.message
     });
   }

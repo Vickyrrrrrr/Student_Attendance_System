@@ -17,6 +17,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/student_a
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/students', require('./routes/students'));
 app.use('/api/classes', require('./routes/classes'));
 app.use('/api/attendance', require('./routes/attendance'));

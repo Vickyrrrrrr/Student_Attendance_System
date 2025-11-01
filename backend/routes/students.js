@@ -1,9 +1,40 @@
 const express = require('express');
+const multer = require('multer');
+const csv = require('csv-parser');
+const { Parser } = require('json2csv');
+const fs = require('fs');
+const path = require('path');
 const { body, validationResult } = require('express-validator');
 const Student = require('../models/Student');
 const Attendance = require('../models/Attendance');
+const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Configure multer for CSV upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `students-${Date.now()}.csv`);
+  }
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'));
+    }
+  }
+});
 
 // Validation middleware
 const validateStudent = [
@@ -13,8 +44,8 @@ const validateStudent = [
   body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email')
 ];
 
-// Get all students
-router.get('/', async (req, res) => {
+// Get all students (all authenticated users can view)
+router.get('/', authenticate, async (req, res) => {
   try {
     const students = await Student.find().sort({ createdAt: -1 });
     res.json({
@@ -31,8 +62,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get student by ID
-router.get('/:id', async (req, res) => {
+// Get student by ID (all authenticated users can view)
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) {
@@ -54,8 +85,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create new student
-router.post('/', validateStudent, async (req, res) => {
+// Create new student (only teachers and admins)
+router.post('/', authenticate, authorize('teacher', 'admin'), validateStudent, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -104,8 +135,8 @@ router.post('/', validateStudent, async (req, res) => {
   }
 });
 
-// Update student
-router.put('/:id', validateStudent, async (req, res) => {
+// Update student (only teachers and admins)
+router.put('/:id', authenticate, authorize('teacher', 'admin'), validateStudent, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -163,8 +194,8 @@ router.put('/:id', validateStudent, async (req, res) => {
   }
 });
 
-// Delete student
-router.delete('/:id', async (req, res) => {
+// Delete student (only teachers and admins)
+router.delete('/:id', authenticate, authorize('teacher', 'admin'), async (req, res) => {
   try {
     // Check if student has attendance records
     const attendanceCount = await Attendance.countDocuments({ studentId: req.params.id });
@@ -198,8 +229,8 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Get student attendance statistics
-router.get('/:id/attendance', async (req, res) => {
+// Get student attendance statistics (all authenticated users can view)
+router.get('/:id/attendance', authenticate, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) {
@@ -238,6 +269,147 @@ router.get('/:id/attendance', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching attendance statistics',
+      error: error.message
+    });
+  }
+});
+
+// CSV Import - Upload and create students from CSV
+router.post('/import/csv', authenticate, authorize('teacher', 'admin'), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const results = [];
+    const errors = [];
+    let created = 0;
+    let updated = 0;
+
+    // Read and parse CSV
+    fs.createReadStream(req.file.path)
+      .pipe(csv())
+      .on('data', (data) => results.push(data))
+      .on('end', async () => {
+        try {
+          for (const row of results) {
+            try {
+              // Validate required fields
+              if (!row.name || !row.rollNumber || !row.class || !row.email) {
+                errors.push({
+                  row,
+                  error: 'Missing required fields (name, rollNumber, class, email)'
+                });
+                continue;
+              }
+
+              // Check if student exists by rollNumber or email
+              const existingStudent = await Student.findOne({
+                $or: [
+                  { rollNumber: row.rollNumber },
+                  { email: row.email }
+                ]
+              });
+
+              if (existingStudent) {
+                // Update existing student
+                existingStudent.name = row.name;
+                existingStudent.rollNumber = row.rollNumber;
+                existingStudent.class = row.class;
+                existingStudent.email = row.email;
+                await existingStudent.save();
+                updated++;
+              } else {
+                // Create new student
+                const newStudent = new Student({
+                  name: row.name,
+                  rollNumber: row.rollNumber,
+                  class: row.class,
+                  email: row.email
+                });
+                await newStudent.save();
+                created++;
+              }
+            } catch (error) {
+              errors.push({
+                row,
+                error: error.message
+              });
+            }
+          }
+
+          // Clean up uploaded file
+          fs.unlinkSync(req.file.path);
+
+          res.json({
+            success: true,
+            message: `CSV imported successfully. Created: ${created}, Updated: ${updated}`,
+            data: {
+              created,
+              updated,
+              errors: errors.length > 0 ? errors : undefined
+            }
+          });
+        } catch (error) {
+          // Clean up uploaded file on error
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+          res.status(500).json({
+            success: false,
+            message: 'Error processing CSV file',
+            error: error.message
+          });
+        }
+      })
+      .on('error', (error) => {
+        // Clean up uploaded file on error
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({
+          success: false,
+          message: 'Error reading CSV file',
+          error: error.message
+        });
+      });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error importing students',
+      error: error.message
+    });
+  }
+});
+
+// CSV Export - Download all students as CSV
+router.get('/export/csv', authenticate, async (req, res) => {
+  try {
+    const students = await Student.find().select('name rollNumber class email').lean();
+
+    if (students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No students found to export'
+      });
+    }
+
+    // Convert to CSV
+    const fields = ['name', 'rollNumber', 'class', 'email'];
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(students);
+
+    // Send CSV file
+    res.header('Content-Type', 'text/csv');
+    res.header('Content-Disposition', 'attachment; filename=students.csv');
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting students',
       error: error.message
     });
   }

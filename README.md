@@ -4,15 +4,18 @@
 
 ## ✨ Features
 
-- **👥 Student Management**: Complete CRUD operations for student records
+- **� Authentication & Authorization**: Secure JWT-based login with role-based access control (Teacher/Student/Admin)
+- **�👥 Student Management**: Complete CRUD operations for student records
 - **📚 Class Management**: Create and manage classes with subjects and teachers  
 - **✅ Attendance Tracking**: Mark daily attendance (Present/Absent/Late) for students
-- **📊 Real-time Dashboard**: Overview with statistics and quick actions
-- **📱 Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **📥 CSV Import/Export**: Bulk import students and export attendance records
+- **� Search & Filter**: Real-time search across all student records
+- **�📊 Real-time Dashboard**: Overview with statistics and quick actions
+- **�‍🏫 Role-Based UI**: Different views and permissions for teachers and students
+- **�📱 Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **🔔 Toast Notifications**: Instant feedback for all operations
 - **🛡️ Data Validation**: Comprehensive input validation and error handling
 - **📈 Attendance Reports**: Generate attendance statistics and summaries
-- **🔍 Search & Filter**: Easy navigation and data retrieval
 - **⚡ Performance Optimized**: Fast and efficient data operations
 
 ## 🛠️ Tech Stack
@@ -22,6 +25,11 @@
 - **Express.js** - Fast, unopinionated web framework
 - **MongoDB** - NoSQL database for flexible data storage
 - **Mongoose** - MongoDB object modeling for Node.js
+- **JWT (jsonwebtoken)** - Secure authentication and authorization
+- **Bcryptjs** - Password hashing for security
+- **Multer** - File upload middleware for CSV imports
+- **CSV-Parser** - Parse CSV files for bulk imports
+- **Json2csv** - Convert JSON to CSV for exports
 - **Express Validator** - Input validation and sanitization
 - **CORS** - Cross-origin resource sharing support
 
@@ -73,20 +81,32 @@
    # Navigate to backend directory
    cd backend
    
-   # Create config.env file
-   cp config.env.example config.env
-   
-   # Edit config.env with your MongoDB connection string
+   # Create config.env file with the following variables
+   # Edit config.env with your configuration
    MONGODB_URI=mongodb://localhost:27017/student_attendance
    PORT=5000
    NODE_ENV=development
+   JWT_SECRET=your-secret-key-change-in-production
+   JWT_EXPIRE=7d
    ```
 
-4. **Start MongoDB**
+4. **Create First Admin User**
+   After starting the backend, register your first user with "teacher" role to get admin access:
+   ```bash
+   # POST to http://localhost:5000/api/auth/register
+   {
+     "name": "Admin User",
+     "email": "admin@university.edu",
+     "password": "securepassword123",
+     "role": "teacher"
+   }
+   ```
+
+5. **Start MongoDB**
    - **Local MongoDB**: Ensure MongoDB service is running
    - **MongoDB Atlas**: Use your cloud connection string in config.env
 
-5. **Run the Application**
+6. **Run the Application**
    ```bash
    # Development mode (both backend and frontend)
    npm run dev
@@ -96,10 +116,47 @@
    npm run client    # Frontend only (port 3000)
    ```
 
-6. **Access the Application**
+7. **Access the Application**
    - **Frontend**: http://localhost:3000
+   - **Login Page**: http://localhost:3000/login
    - **Backend API**: http://localhost:5000
    - **Health Check**: http://localhost:5000/api/health
+
+## 👤 Default Roles & Permissions
+
+### Teacher/Admin
+- ✅ Create, edit, and delete students
+- ✅ Create, edit, and delete classes
+- ✅ Mark and manage attendance
+- ✅ Import students via CSV
+- ✅ Export attendance and student data
+- ✅ View all statistics and reports
+
+### Student
+- ✅ View their own attendance records
+- ✅ View class schedules
+- ✅ Export their attendance history
+- ❌ Cannot modify student or class records
+- ❌ Cannot mark attendance
+
+## 📥 CSV Import/Export
+
+### Import Students (CSV)
+Upload a CSV file with the following format:
+```csv
+name,rollNumber,class,email
+John Doe,001,CS-A,john@university.edu
+Jane Smith,002,CS-A,jane@university.edu
+```
+
+**Required columns**: `name`, `rollNumber`, `class`, `email`
+
+### Export Attendance (CSV)
+Click "Export CSV" on the Attendance page to download records in this format:
+```csv
+studentName,rollNumber,studentClass,studentEmail,className,subject,teacher,date,status
+John Doe,001,CS-A,john@university.edu,Mathematics,Calculus I,Dr. Smith,11/2/2025,Present
+```
 
 ## 📱 Screenshots
 
@@ -125,13 +182,21 @@
 
 ## 🌐 API Endpoints
 
-### Students
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login and get JWT token
+- `GET /api/auth/me` - Get current user profile (requires auth)
+- `PUT /api/auth/update-password` - Update password (requires auth)
+
+### Students (all require authentication)
 - `GET /api/students` - Get all students
 - `GET /api/students/:id` - Get student by ID
-- `POST /api/students` - Create new student
-- `PUT /api/students/:id` - Update student
-- `DELETE /api/students/:id` - Delete student
+- `POST /api/students` - Create new student (teacher/admin only)
+- `PUT /api/students/:id` - Update student (teacher/admin only)
+- `DELETE /api/students/:id` - Delete student (teacher/admin only)
 - `GET /api/students/:id/attendance` - Get student attendance statistics
+- `POST /api/students/import/csv` - Import students from CSV (teacher/admin only)
+- `GET /api/students/export/csv` - Export students to CSV
 
 ### Classes
 - `GET /api/classes` - Get all classes
@@ -141,14 +206,15 @@
 - `DELETE /api/classes/:id` - Delete class
 - `GET /api/classes/:id/attendance-summary` - Get class attendance summary
 
-### Attendance
+### Attendance (all require authentication)
 - `GET /api/attendance` - Get all attendance records
 - `GET /api/attendance/:id` - Get attendance record by ID
-- `POST /api/attendance` - Mark attendance
-- `PUT /api/attendance/:id` - Update attendance
-- `DELETE /api/attendance/:id` - Delete attendance record
-- `POST /api/attendance/bulk` - Bulk mark attendance
+- `POST /api/attendance` - Mark attendance (teacher/admin only)
+- `PUT /api/attendance/:id` - Update attendance (teacher/admin only)
+- `DELETE /api/attendance/:id` - Delete attendance record (teacher/admin only)
+- `POST /api/attendance/bulk` - Bulk mark attendance (teacher/admin only)
 - `GET /api/attendance/stats/overview` - Get attendance statistics
+- `GET /api/attendance/export/csv` - Export attendance to CSV
 
 ## 📁 Project Structure
 
@@ -158,11 +224,16 @@ Student_Attendance_System/
 │   ├── models/             # MongoDB schemas
 │   │   ├── Student.js      # Student model
 │   │   ├── Class.js        # Class model
+│   │   ├── User.js         # User/auth model
 │   │   └── Attendance.js   # Attendance model
 │   ├── routes/             # API endpoints
 │   │   ├── students.js     # Student routes
 │   │   ├── classes.js      # Class routes
+│   │   ├── auth.js         # Authentication routes
 │   │   └── attendance.js   # Attendance routes
+│   ├── middleware/         # Custom middleware
+│   │   └── auth.js         # JWT authentication
+│   ├── uploads/            # Temporary CSV uploads
 │   ├── config.env          # Environment variables
 │   ├── package.json        # Backend dependencies
 │   └── server.js           # Express server
@@ -173,14 +244,19 @@ Student_Attendance_System/
 │   │   └── manifest.json   # PWA manifest
 │   ├── src/                # Source code
 │   │   ├── components/     # Reusable components
-│   │   │   └── Navbar.js   # Navigation component
+│   │   │   ├── Navbar.js      # Navigation with auth
+│   │   │   └── PrivateRoute.js # Protected route wrapper
+│   │   ├── context/        # React context
+│   │   │   └── AuthContext.js  # Auth state management
 │   │   ├── pages/          # Page components
 │   │   │   ├── Dashboard.js    # Dashboard page
-│   │   │   ├── Students.js     # Students page
+│   │   │   ├── Login.js        # Login page
+│   │   │   ├── Register.js     # Registration page
+│   │   │   ├── Students.js     # Students page (with CSV import/export)
 │   │   │   ├── Classes.js      # Classes page
-│   │   │   └── Attendance.js   # Attendance page
+│   │   │   └── Attendance.js   # Attendance page (with CSV export)
 │   │   ├── services/       # API services
-│   │   │   └── api.js      # HTTP client setup
+│   │   │   └── api.js      # HTTP client with auth interceptors
 │   │   ├── App.js          # Main app component
 │   │   ├── index.js        # App entry point
 │   │   └── index.css       # Global styles
@@ -239,6 +315,8 @@ npm run client
 MONGODB_URI=mongodb://localhost:27017/student_attendance
 PORT=5000
 NODE_ENV=development
+JWT_SECRET=your-secret-key-change-in-production
+JWT_EXPIRE=7d
 
 # Frontend Configuration (optional)
 REACT_APP_API_URL=http://localhost:5000/api
@@ -313,15 +391,26 @@ If you encounter any issues or have questions:
 
 ## 🔮 Future Enhancements
 
-- **🔐 User Authentication**: Login/logout with role-based access
-- **👨‍🏫 Role Management**: Admin, Teacher, and Student roles
-- **📧 Email Notifications**: Automated attendance reminders
-- **📱 Mobile App**: Native mobile application
-- **📊 Advanced Analytics**: Detailed reports and insights
-- **🔄 Bulk Operations**: Import/export functionality
-- **🔍 Advanced Search**: Filtering and search capabilities
-- **📈 Attendance Trends**: Pattern analysis and predictions
-- **🔗 API Integration**: Connect with other school systems
+- **� Session Scheduling**: Create recurring class sessions with automatic attendance tracking
+- **📧 Email Notifications**: Automated attendance reminders and reports
+- **📱 Mobile App**: Native mobile application for iOS and Android
+- **📊 Advanced Analytics**: Detailed reports, trends, and predictions
+- **📈 Attendance Trends**: Pattern analysis with visual charts
+- **🔗 API Integration**: Connect with other school management systems
+- **🎯 QR Code Check-in**: Quick student attendance via QR scanning
+- **� Bulk Operations**: Advanced import/export with templates
+- **🔍 Advanced Filtering**: Date ranges, class filters, and custom queries
+- **🎨 Custom Themes**: Branding options for different institutions
+
+## 🏫 Perfect for Universities
+
+This system is specifically designed for university-level classes with:
+- **Large Class Sizes**: Efficient bulk operations and search
+- **Multiple Courses**: Organize by department, semester, and section
+- **Faculty Management**: Role-based access for professors and TAs
+- **Student Privacy**: Secure authentication and data protection
+- **Export for Grading**: CSV exports compatible with grade books
+- **Self-Service**: Students can view their own attendance
 
 ## 🙏 Acknowledgments
 
