@@ -32,8 +32,9 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'Server is running',
-    version: '1.1.0',
-    memoryStorage: true 
+    version: '1.2.0',
+    memoryStorage: true,
+    csvImportReady: true
   });
 });
 
