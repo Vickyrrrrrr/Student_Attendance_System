@@ -11,19 +11,8 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Configure multer for CSV upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `students-${Date.now()}.csv`);
-  }
-});
+// Configure multer for CSV upload (use memory storage for cloud deployment)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -33,6 +22,9 @@ const upload = multer({
     } else {
       cb(new Error('Only CSV files are allowed'));
     }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
 
@@ -289,8 +281,11 @@ router.post('/import/csv', authenticate, authorize('teacher', 'admin'), upload.s
     let created = 0;
     let updated = 0;
 
-    // Read and parse CSV
-    fs.createReadStream(req.file.path)
+    // Read and parse CSV from buffer
+    const { Readable } = require('stream');
+    const bufferStream = Readable.from(req.file.buffer);
+    
+    bufferStream
       .pipe(csv())
       .on('data', (data) => results.push(data))
       .on('end', async () => {
@@ -341,9 +336,6 @@ router.post('/import/csv', authenticate, authorize('teacher', 'admin'), upload.s
             }
           }
 
-          // Clean up uploaded file
-          fs.unlinkSync(req.file.path);
-
           res.json({
             success: true,
             message: `CSV imported successfully. Created: ${created}, Updated: ${updated}`,
@@ -354,10 +346,6 @@ router.post('/import/csv', authenticate, authorize('teacher', 'admin'), upload.s
             }
           });
         } catch (error) {
-          // Clean up uploaded file on error
-          if (fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-          }
           res.status(500).json({
             success: false,
             message: 'Error processing CSV file',
@@ -366,10 +354,6 @@ router.post('/import/csv', authenticate, authorize('teacher', 'admin'), upload.s
         }
       })
       .on('error', (error) => {
-        // Clean up uploaded file on error
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
         res.status(500).json({
           success: false,
           message: 'Error reading CSV file',
