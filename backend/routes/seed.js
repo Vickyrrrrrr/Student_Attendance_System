@@ -66,10 +66,10 @@ const sampleUsers = [
   }
 ];
 
-// @route   POST /api/seed/init
+// @route   GET /api/seed/init
 // @desc    Seed database with sample data (ONE-TIME USE)
 // @access  Public (will be removed after first use)
-router.post('/init', async (req, res) => {
+router.get('/init', async (req, res) => {
   try {
     // Check if data already exists
     const userCount = await User.countDocuments();
