@@ -29,7 +29,12 @@ app.use('/api/seed', require('./routes/seed'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is running',
+    version: '1.1.0',
+    memoryStorage: true 
+  });
 });
 
 // Error handling middleware
