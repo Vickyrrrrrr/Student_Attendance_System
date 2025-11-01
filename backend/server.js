@@ -25,6 +25,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/students', require('./routes/students'));
 app.use('/api/classes', require('./routes/classes'));
 app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/seed', require('./routes/seed'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
