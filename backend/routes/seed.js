@@ -53,33 +53,30 @@ const sampleClasses = [
 
 const sampleUsers = [
   {
-    name: 'Professor Admin',
-    email: 'admin@university.edu',
-    password: 'admin123',
+    name: 'Professor Smith',
+    email: 'teacher@university.edu',
+    password: 'Teacher@2024',
     role: 'teacher'
   },
   {
-    name: 'Student User',
+    name: 'Admin User',
+    email: 'admin@university.edu',
+    password: 'Admin@2024',
+    role: 'admin'
+  },
+  {
+    name: 'Student Demo',
     email: 'student@university.edu',
-    password: 'student123',
+    password: 'Student@2024',
     role: 'student'
   }
 ];
 
 // @route   GET /api/seed/init
-// @desc    Seed database with sample data (ONE-TIME USE)
-// @access  Public (will be removed after first use)
+// @desc    Seed database with sample data
+// @access  Public (should be removed in production)
 router.get('/init', async (req, res) => {
   try {
-    // Check if data already exists
-    const userCount = await User.countDocuments();
-    if (userCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Database already seeded. Delete this endpoint for security.'
-      });
-    }
-
     // Clear existing data
     await Student.deleteMany({});
     await Class.deleteMany({});
@@ -107,13 +104,17 @@ router.get('/init', async (req, res) => {
         classes: classes.length,
         users: users.length,
         credentials: {
+          teacher: {
+            email: 'teacher@university.edu',
+            password: 'Teacher@2024'
+          },
           admin: {
             email: 'admin@university.edu',
-            password: 'admin123'
+            password: 'Admin@2024'
           },
           student: {
             email: 'student@university.edu',
-            password: 'student123'
+            password: 'Student@2024'
           }
         }
       }
