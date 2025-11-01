@@ -25,6 +25,21 @@ pids
 .env.development.local
 .env.test.local
 .env.production.local
+config.env
+
+# PM2 files
+.pm2
+ecosystem.config.js
+
+# Local startup scripts
+start-servers.bat
+stop-servers.bat
+restart-servers.bat
+view-logs.bat
+startup.bat
+enable-auto-start.bat
+remove-auto-start.bat
+start-frontend.bat
 
 # Build output
 /dist

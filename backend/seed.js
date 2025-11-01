@@ -108,7 +108,7 @@ const sampleUsers = [
   {
     name: 'Teaching Assistant',
     email: 'ta@university.edu',
-    password: 'ta123',
+    password: 'ta12345',
     role: 'teacher'
   },
   {
@@ -140,8 +140,13 @@ const seedDatabase = async () => {
     const classes = await Class.insertMany(sampleClasses);
     console.log(`${classes.length} classes created`);
 
-    // Insert sample users
-    const users = await User.insertMany(sampleUsers);
+    // Insert sample users (use save() to trigger password hashing)
+    const users = [];
+    for (const userData of sampleUsers) {
+      const user = new User(userData);
+      await user.save();
+      users.push(user);
+    }
     console.log(`${users.length} users created`);
 
     console.log('\n✅ Database seeded successfully!');
