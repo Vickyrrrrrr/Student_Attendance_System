@@ -12,6 +12,7 @@ import Attendance from './pages/Attendance';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import StudentRegister from './pages/StudentRegister';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/student-register" element={<StudentRegister />} />
             
             <Route
               path="/*"

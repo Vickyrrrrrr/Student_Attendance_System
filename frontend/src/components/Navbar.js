@@ -12,11 +12,16 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/students', label: 'Students', icon: '👥' },
-    { path: '/classes', label: 'Classes', icon: '📚' },
-    { path: '/attendance', label: 'Attendance', icon: '✅' },
+    { path: '/', label: 'Dashboard', icon: '📊', roles: ['admin', 'teacher', 'student'] },
+    { path: '/students', label: 'Students', icon: '👥', roles: ['admin', 'teacher'] },
+    { path: '/classes', label: 'Classes', icon: '📚', roles: ['admin', 'teacher'] },
+    { path: '/attendance', label: 'Attendance', icon: '✅', roles: ['admin', 'teacher'] },
   ];
+
+  // Filter nav items based on user role
+  const filteredNavItems = navItems.filter(item => 
+    item.roles.includes(user?.role)
+  );
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
@@ -46,7 +51,7 @@ const Navbar = () => {
           
           <div className="hidden md:flex items-center space-x-4">
             <div className="flex space-x-1">
-              {navItems.map((item) => (
+              {filteredNavItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
@@ -117,7 +122,7 @@ const Navbar = () => {
         {/* Mobile menu */}
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}

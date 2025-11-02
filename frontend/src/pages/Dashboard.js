@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { studentsAPI, classesAPI, attendanceAPI } from '../services/api';
+import StudentDashboard from './StudentDashboard';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -11,10 +12,25 @@ const Dashboard = () => {
     attendancePercentage: 0
   });
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
-    fetchDashboardData();
+    // Check user role
+    const user = JSON.parse(localStorage.getItem('user'));
+    setUserRole(user?.role || '');
+    
+    // Only fetch dashboard data for teachers and admins
+    if (user?.role !== 'student') {
+      fetchDashboardData();
+    } else {
+      setLoading(false);
+    }
   }, []);
+
+  // If student, show student dashboard
+  if (userRole === 'student') {
+    return <StudentDashboard />;
+  }
 
   const fetchDashboardData = async () => {
     try {
