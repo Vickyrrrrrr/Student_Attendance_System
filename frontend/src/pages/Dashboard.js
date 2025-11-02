@@ -40,46 +40,35 @@ const Dashboard = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon, color, link, gradient }) => (
-    <div className={`bg-gradient-to-br ${gradient} rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl ${link ? 'cursor-pointer' : ''}`}>
+  const StatCard = ({ title, value, icon, link }) => (
+    <div className={`bg-gray-50 rounded-2xl p-8 transform transition-all duration-300 hover:bg-gray-100 ${link ? 'cursor-pointer' : ''}`}>
       {link ? (
         <Link to={link} className="block">
-          <div className="flex items-center justify-between">
-            <div className="text-white">
-              <p className="text-sm font-semibold opacity-90 mb-1">{title}</p>
-              <p className="text-4xl font-bold">{value}</p>
-              <p className="text-xs mt-2 opacity-75">Click to view details</p>
-            </div>
-            <div className={`p-4 rounded-full bg-white bg-opacity-20 backdrop-blur-sm`}>
-              <span className="text-4xl">{icon}</span>
-            </div>
+          <div className="text-center">
+            <div className="text-5xl mb-4">{icon}</div>
+            <p className="text-5xl font-semibold text-gray-900 mb-2">{value}</p>
+            <p className="text-sm font-medium text-gray-500 tracking-wide uppercase">{title}</p>
           </div>
         </Link>
       ) : (
-        <div className="flex items-center justify-between">
-          <div className="text-white">
-            <p className="text-sm font-semibold opacity-90 mb-1">{title}</p>
-            <p className="text-4xl font-bold">{value}</p>
-          </div>
-          <div className={`p-4 rounded-full bg-white bg-opacity-20 backdrop-blur-sm`}>
-            <span className="text-4xl">{icon}</span>
-          </div>
+        <div className="text-center">
+          <div className="text-5xl mb-4">{icon}</div>
+          <p className="text-5xl font-semibold text-gray-900 mb-2">{value}</p>
+          <p className="text-sm font-medium text-gray-500 tracking-wide uppercase">{title}</p>
         </div>
       )}
     </div>
   );
 
-  const QuickActionCard = ({ title, description, icon, link, gradient }) => (
+  const QuickActionCard = ({ title, description, icon, link }) => (
     <Link to={link} className="block group">
-      <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-2 border-transparent hover:border-indigo-200">
-        <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${gradient} mb-4 transform group-hover:scale-110 transition-transform duration-300`}>
-          <span className="text-3xl">{icon}</span>
-        </div>
-        <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">{title}</h3>
-        <p className="text-gray-600 text-sm">{description}</p>
-        <div className="mt-4 flex items-center text-indigo-600 font-semibold text-sm">
-          <span>Get started</span>
-          <span className="ml-2 transform group-hover:translate-x-2 transition-transform">→</span>
+      <div className="bg-white rounded-2xl p-8 hover:bg-gray-50 transition-all duration-300 border border-gray-100">
+        <div className="text-5xl mb-4">{icon}</div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
+        <p className="text-gray-500 text-base leading-relaxed">{description}</p>
+        <div className="mt-6 flex items-center text-blue-600 font-medium text-base">
+          <span className="group-hover:mr-2 transition-all">Learn more</span>
+          <span className="group-hover:translate-x-1 transition-transform">→</span>
         </div>
       </div>
     </Link>
@@ -94,112 +83,97 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header with gradient */}
-      <div className="text-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-8 text-white shadow-xl">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
-          Welcome to Student Attendance System
+    <div className="space-y-16 py-8">
+      {/* Apple-style Hero Header */}
+      <div className="text-center max-w-4xl mx-auto px-4">
+        <h1 className="text-6xl md:text-7xl font-semibold text-gray-900 mb-6 tracking-tight">
+          Student Attendance
         </h1>
-        <p className="text-xl md:text-2xl opacity-90">
-          Manage students, classes, and track attendance efficiently
+        <p className="text-2xl md:text-3xl text-gray-500 font-normal leading-relaxed">
+          Simple. Powerful. Efficient.
         </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Statistics Cards - Apple Style */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Students"
+          title="Students"
           value={stats.students}
           icon="👥"
-          gradient="from-blue-500 to-blue-600"
           link="/students"
         />
         <StatCard
-          title="Total Classes"
+          title="Classes"
           value={stats.classes}
           icon="📚"
-          gradient="from-green-500 to-emerald-600"
           link="/classes"
         />
         <StatCard
-          title="Attendance Records"
+          title="Records"
           value={stats.attendance}
           icon="✅"
-          gradient="from-purple-500 to-indigo-600"
           link="/attendance"
         />
         <StatCard
-          title="Attendance Rate"
+          title="Rate"
           value={`${stats.attendancePercentage}%`}
           icon="📊"
-          gradient="from-orange-500 to-red-600"
         />
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center">
-          <span className="mr-3">⚡</span>
-          Quick Actions
+      {/* Quick Actions - Clean minimal cards */}
+      <div className="space-y-8">
+        <h2 className="text-4xl font-semibold text-gray-900 tracking-tight">
+          Quick actions
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <QuickActionCard
-            title="Add New Student"
-            description="Register a new student in the system"
+            title="Add Student"
+            description="Register a new student in the system."
             icon="👤"
             link="/students"
-            gradient="from-blue-400 to-blue-500"
           />
           <QuickActionCard
-            title="Create New Class"
-            description="Set up a new class with subject and teacher"
+            title="Create Class"
+            description="Set up a new class with subject and teacher."
             icon="📖"
             link="/classes"
-            gradient="from-green-400 to-emerald-500"
           />
           <QuickActionCard
             title="Mark Attendance"
-            description="Record attendance for students"
+            description="Record attendance for your students."
             icon="✏️"
             link="/attendance"
-            gradient="from-purple-400 to-indigo-500"
           />
         </div>
       </div>
 
-      {/* Recent Activity with better design */}
-      <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-        <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center">
-          <span className="mr-3">📈</span>
-          System Overview
+      {/* Overview - Minimal design */}
+      <div className="bg-gray-50 rounded-3xl p-12 space-y-8">
+        <h2 className="text-3xl font-semibold text-gray-900">
+          Overview
         </h2>
-        <div className="space-y-4">
-          <div className="flex items-center space-x-4 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl hover:shadow-md transition-shadow">
-            <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg">
-              <span className="text-2xl">📊</span>
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-gray-900 text-lg">Student Enrollment</p>
-              <p className="text-sm text-gray-600 mt-1">
-                {stats.students} students enrolled in {stats.classes} classes
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-bold text-blue-600">{stats.students}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <div className="text-3xl">📊</div>
+              <div>
+                <p className="text-lg font-medium text-gray-900">Student Enrollment</p>
+                <p className="text-base text-gray-500">
+                  {stats.students} students in {stats.classes} classes
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center space-x-4 p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl hover:shadow-md transition-shadow">
-            <div className="p-3 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl shadow-lg">
-              <span className="text-2xl">✅</span>
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-gray-900 text-lg">Attendance Tracking</p>
-              <p className="text-sm text-gray-600 mt-1">
-                {stats.attendance} attendance records with {stats.attendancePercentage}% attendance rate
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-bold text-green-600">{stats.attendancePercentage}%</span>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <div className="text-3xl">✅</div>
+              <div>
+                <p className="text-lg font-medium text-gray-900">Attendance Rate</p>
+                <p className="text-base text-gray-500">
+                  {stats.attendance} records • {stats.attendancePercentage}% attendance
+                </p>
+              </div>
             </div>
           </div>
         </div>

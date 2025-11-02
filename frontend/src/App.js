@@ -17,7 +17,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white">
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -27,7 +27,7 @@ function App() {
               element={
                 <PrivateRoute>
                   <Navbar />
-                  <main className="container mx-auto px-4 py-8">
+                  <main className="container mx-auto px-6 py-12 max-w-7xl">
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/students" element={<Students />} />
