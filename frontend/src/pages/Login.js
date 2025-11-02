@@ -59,7 +59,7 @@ const Login = () => {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all sm:text-base bg-white hover:border-gray-300"
+                  className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 sm:text-base bg-white hover:border-gray-300 hover:shadow-md"
                   placeholder="Email"
                 />
               </div>
@@ -72,7 +72,7 @@ const Login = () => {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all sm:text-base bg-white hover:border-gray-300"
+                  className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 sm:text-base bg-white hover:border-gray-300 hover:shadow-md"
                   placeholder="Password"
                 />
               </div>
@@ -82,7 +82,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent text-base font-medium rounded-xl text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent text-base font-medium rounded-xl text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 transform active:translate-y-0"
               >
                 {loading ? 'Signing in...' : 'Continue'}
               </button>
@@ -91,7 +91,7 @@ const Login = () => {
             <div className="text-center pt-4">
               <p className="text-sm text-gray-500">
                 Don't have an account?{' '}
-                <Link to="/register" className="text-blue-600 hover:text-blue-500 font-medium transition-colors">
+                <Link to="/register" className="text-blue-600 hover:text-blue-500 font-medium transition-all duration-300 hover:underline">
                   Create yours now
                 </Link>
               </p>
