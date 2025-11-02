@@ -44,6 +44,21 @@ code {
   animation-delay: 4s;
 }
 
+/* Animated gradient background */
+@keyframes gradient-xy {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-xy {
+  background-size: 400% 400%;
+  animation: gradient-xy 15s ease infinite;
+}
+
 /* Smooth transitions */
 * {
   transition-property: all;
